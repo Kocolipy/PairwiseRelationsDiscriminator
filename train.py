@@ -16,8 +16,8 @@ if __name__ == '__main__':
     cwd = pathlib.Path(os.getcwd())
 
     torch.multiprocessing.freeze_support()
-    # device = torch.device("cuda:0") if torch.cuda.is_available() else torch.device("cpu")
-    device = torch.device("cpu")
+    device = torch.device("cuda:0") if torch.cuda.is_available() else torch.device("cpu")
+    # device = torch.device("cpu")
 
     hyperparams = {"batch_size": 20,
                    "raven_mode": "All",
@@ -26,8 +26,8 @@ if __name__ == '__main__':
                    "wd": 0.0001,
                    "ckpt": int(sys.argv[1]) if len(sys.argv) > 1 else None}
 
-    data_path = pathlib.Path(r"D:\RAVEN\Fold_1") / hyperparams["raven_mode"]
-    # data_path = cwd / "data" / hyperparams["raven_mode"]
+    # data_path = pathlib.Path(r"D:\RAVEN\Fold_1") / hyperparams["raven_mode"]
+    data_path = cwd / "data" / hyperparams["raven_mode"]
 
     # # Load the autoencoder
     # aeckpt = data_path / "ae_ckpt" / "150"
@@ -69,11 +69,11 @@ if __name__ == '__main__':
 
     # Move model and optimiser to CUDA if available
     classifier.to(device)
-    # if torch.cuda.is_available():
-    #     for state in optimizer.state.values():
-    #         for k, v in state.items():
-    #             if torch.is_tensor(v):
-    #                 state[k] = v.cuda()
+    if torch.cuda.is_available():
+        for state in optimizer.state.values():
+            for k, v in state.items():
+                if torch.is_tensor(v):
+                    state[k] = v.cuda()
 
     for epoch in range(hyperparams["num_epochs"]):
         # Training Phase
@@ -106,8 +106,8 @@ if __name__ == '__main__':
             # print("fake", fake_output.cpu().tolist())
 
             # Compute loss and backpropagate gradients
-            # loss = (real_loss + fake_loss)/2
-            loss = fake_loss
+            loss = (real_loss + fake_loss)/2
+            # loss = fake_loss
             loss.backward()
             optimizer.step()
 
