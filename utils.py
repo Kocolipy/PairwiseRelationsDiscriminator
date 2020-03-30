@@ -61,4 +61,20 @@ def displayDualSet(imagetensor):
 
     plt.show()
 
+def displayMatrix(imagetensor):
+    """"
+    Display the matrix (10, 3, W, H)
+    """
+    fig, ims = plt.subplots(10, 3)
+
+    # plot
+    for i in range(10):
+        for j in range(3):
+            image = imagetensor[i, j, :].squeeze()
+            ims[i][j].imshow(image, cmap='gray')
+            plt.setp(ims[i][j].get_yticklabels(), visible=False)
+            plt.setp(ims[i][j].get_xticklabels(), visible=False)
+            ims[i][j].tick_params(axis='both', which='both', length=0)
+
+    plt.show()
 

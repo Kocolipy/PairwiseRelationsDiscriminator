@@ -2,25 +2,56 @@ import torch
 from torch import nn
 import torchvision.models as models
 
-class ResNet(nn.Module):
+class NCDNet(nn.Module):
     def __init__(self):
         super().__init__()
-        self.cnn = models.resnet18()
-        self.mlp = torch.nn.Sequential(
-            nn.Linear(2000, 2000, bias=True),
-            nn.ReLU(inplace=True),
-            nn.Linear(2000, 1000, bias=True),
-            nn.ReLU(inplace=True),
-            nn.Linear(1000, 128, bias=True),
-            nn.ReLU(inplace=True),
-            nn.Linear(128, 1, bias=True),
+        self.cnn = models.resnet18(pretrained=True)
+        self.ffnn = torch.nn.Sequential(
+            nn.Dropout(0.5),
+            nn.Linear(1000, 1),
             nn.Sigmoid()
         )
     def forward(self, x):
         features = []
+        for i in range(x.shape[1]):
+            features.append(self.cnn(x[:, i, :]))
+
+        centroid = 0.5*(features[0] + features[1])
+        features = torch.stack(features, 1)
+
+        decentre = features - centroid.unsqueeze(1).repeat(1, 10, 1)
+
+        output = []
+        for i in range(decentre.shape[1]):
+            output.append(self.ffnn(decentre[:, i, :]))
+
+        return torch.stack(output, 1)
+
+class ResNet(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.cnn = models.resnet18(pretrained=True)
+        self.cnn.fc = nn.Identity()
+        self.mlp = torch.nn.Sequential(
+            nn.Dropout(0.5),
+            nn.Linear(512, 1),
+            nn.Sigmoid()
+        )
+
+    def forward(self, x):
+        features = None
         for i in range(2):
-            features.append(self.cnn(x[:, 3*i:3*i + 3, :]))
-        features = torch.cat(features, 1)
+            y = self.cnn(x[:, 3*i:3*i + 3, :])
+            if features is None:
+                features = y
+            else:
+                features = features.add(-1*y)
+
+        # features = []
+        # for i in range(2):
+        #     y = self.cnn(x[:, 3*i:3*i + 3, :])
+        #     features.append(y)
+        # features = torch.cat(features, 1)
         x = self.mlp(features)
         return x
 
