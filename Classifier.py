@@ -34,24 +34,26 @@ class ResNet(nn.Module):
         self.cnn.fc = nn.Identity()
         self.mlp = torch.nn.Sequential(
             nn.Dropout(0.5),
-            nn.Linear(512, 1),
+            nn.Linear(1024, 128),
+            nn.LeakyReLU(),
+            nn.Linear(128, 1),
             nn.Sigmoid()
         )
 
     def forward(self, x):
-        features = None
-        for i in range(2):
-            y = self.cnn(x[:, 3*i:3*i + 3, :])
-            if features is None:
-                features = y
-            else:
-                features = features.add(-1*y)
-
-        # features = []
+        # features = None
         # for i in range(2):
         #     y = self.cnn(x[:, 3*i:3*i + 3, :])
-        #     features.append(y)
-        # features = torch.cat(features, 1)
+        #     if features is None:
+        #         features = y
+        #     else:
+        #         features = features.add(-1*y)
+
+        features = []
+        for i in range(2):
+            y = self.cnn(x[:, 3*i:3*i + 3, :])
+            features.append(y)
+        features = torch.cat(features, 1)
         x = self.mlp(features)
         return x
 

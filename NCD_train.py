@@ -80,6 +80,7 @@ if __name__ == '__main__':
 
         for data in train_loader:
             if data.shape[0] != hyperparams["batch_size"]:
+                # To handle the last batch (usually less than batch size)
                 label = label[:data.shape[0]]
 
             optimizer.zero_grad()

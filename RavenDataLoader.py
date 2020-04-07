@@ -110,6 +110,41 @@ def DualRowsRealFakeLoader(data_path, hyperparams):
     return DataLoader(data_set, batch_size=hyperparams["batch_size"],
                         shuffle=True, num_workers=hyperparams["batch_size"])
 
+class RandomRealFakeDataset(Dataset):
+    def __init__(self, data_source):
+        self.data_source = data_source
+
+    def __len__(self):
+        return len(os.listdir(str(self.data_source)))
+
+    def __getitem__(self, idx):
+        if torch.is_tensor(idx):
+            idx = idx.tolist()
+
+        with open(str(self.data_source / str(idx)), "rb") as f:
+            file = pickle.load(f)
+
+        i = 3 if random.random() > 0.5 else 0
+        j = abs(i-3)
+        firstSet = norm(torch.tensor(resize(file.questionPanels[i:i+3], (3, 224, 224))))
+        secondSet = norm(torch.tensor(resize(file.questionPanels[j:j+3], (3, 224, 224))))
+        real_data = torch.cat([firstSet, secondSet], 0)
+
+        if random.random() > 0.5:
+            thirdSet = np.concatenate([file.questionPanels[j:j + 2], random.choice(file.answerPanels)[np.newaxis, :]])
+            thirdSet = norm(torch.tensor(resize(thirdSet, (3, 224, 224))))
+            fake_data = torch.cat([firstSet, thirdSet], 0)
+        else:
+            thirdSet = np.concatenate([file.questionPanels[6:8], random.choice(file.questionPanels[j:j+3])[np.newaxis, :]])
+            thirdSet = norm(torch.tensor(resize(thirdSet, (3, 224, 224))))
+            fake_data = torch.cat([firstSet, thirdSet], 0)
+
+        return real_data, torch.tensor(1.0, dtype=float), fake_data, torch.tensor(0.0, dtype=float)
+
+def RandomRealFakeLoader(data_path, hyperparams):
+    data_set = RandomRealFakeDataset(data_path)
+    return DataLoader(data_set, batch_size=hyperparams["batch_size"],
+                      shuffle=True, num_workers=hyperparams["batch_size"])
 
 class ValidationDataset(Dataset):
         """"

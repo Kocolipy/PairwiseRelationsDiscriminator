@@ -19,7 +19,7 @@ if __name__ == '__main__':
     device = torch.device("cuda:0") if torch.cuda.is_available() else torch.device("cpu")
     # device = torch.device("cpu")
 
-    hyperparams = {"batch_size": 16,
+    hyperparams = {"batch_size": 32,
                    "raven_mode": "All",
                    "num_epochs": 80,
                    "lr": 0.001,
@@ -34,7 +34,8 @@ if __name__ == '__main__':
     # ae = utils.loadAutoEncoder(Autoencoder.DenoisingAE, aeckpt, device)
 
     # Create the dataloader for training
-    train_loader = RavenDataLoader.DualRowsRealFakeLoader(data_path, hyperparams)
+    # train_loader = RavenDataLoader.DualRowsRealFakeLoader(data_path, hyperparams)
+    train_loader = RavenDataLoader.RandomRealFakeLoader(data_path/"train", hyperparams)
 
     # Create the dataloader for validation loss (2 set of 3 tiles [discriminator task])
     valrows_loader = RavenDataLoader.DualRowsLoader(data_path/"val", hyperparams)
@@ -49,9 +50,9 @@ if __name__ == '__main__':
     # classifier = Classifier.FFNN()
 
     # Optimiser
-    learning_rate = 0.00025
+    learning_rate = 0.0002
     optimizer = torch.optim.Adam(classifier.parameters(), lr=learning_rate)
-    scheduler = StepLR(optimizer, step_size=1, gamma=0.9)
+    # scheduler = StepLR(optimizer, step_size=1, gamma=0.8)
 
     # Loss function
     criterion = torch.nn.BCELoss()
@@ -123,8 +124,8 @@ if __name__ == '__main__':
         training_loss = training_loss / len(train_loader)
         print("Training Loss: {0:.5f}".format(training_loss))
 
-        if (epoch + (hyperparams["ckpt"] if hyperparams["ckpt"] else 0) + 1) % 5 == 0:
-            scheduler.step()
+        if (epoch + (hyperparams["ckpt"] if hyperparams["ckpt"] else 0) + 1) > 30 and (epoch + (hyperparams["ckpt"] if hyperparams["ckpt"] else 0) + 1) % 5 == 0:
+            # scheduler.step()
             # Validation Phase
             classifier.eval()
             val_loss = 0.0
@@ -161,7 +162,8 @@ if __name__ == '__main__':
                         vals = []
                         option_feat = classifier.cnn(data[:, option, 0, 3:, :])
 
-                        features = combined_qns.add(-1 * option_feat)
+                        # features = combined_qns.add(-1 * option_feat)
+                        features = torch.cat([combined_qns, option_feat], 1)
                         combined_scores.append(classifier.mlp(features))
 
                         for sample_set in range(data.shape[2]):
