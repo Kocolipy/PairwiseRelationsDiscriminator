@@ -1,38 +1,21 @@
 import os
 import pathlib
-import pickle
 
 # importing the libraries
-import pandas as pd
 import numpy as np
 
 # for reading and displaying images
-from skimage.io import imread
-import matplotlib.pyplot as plt
 
 # for creating validation set
-from sklearn.model_selection import train_test_split
 
 # for evaluating the model
-from sklearn.metrics import accuracy_score
-from tqdm import tqdm
 import sys
 
 # PyTorch libraries and modules
 import torch
-import torch.nn as nn
-from torch.autograd import Variable
-from torch.nn import Linear, ReLU, CrossEntropyLoss, Sequential, Conv2d, MaxPool2d, Module, Softmax, BatchNorm2d, Dropout
-from torch.optim import Adam, SGD
-import torchvision
-from torchvision import datasets, models, transforms
 from torch.utils.data import DataLoader
-from PIL import Image
 from collections import Counter
 
-import dualsets
-import sample
-import Autoencoder
 import Classifier
 import RavenDataLoader
 

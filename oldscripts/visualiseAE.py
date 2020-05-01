@@ -1,12 +1,10 @@
 import torch
-from torch.utils.data import DataLoader
 
 import os
 import pathlib
 import sys
 
-import Autoencoder
-import Classifier
+from oldscripts import Autoencoder
 import RavenDataLoader
 import utils
 

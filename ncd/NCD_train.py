@@ -4,13 +4,9 @@ import os
 import pathlib
 import sys
 import torch
-import torchvision.models as models
-from torch.optim.lr_scheduler import StepLR
 
-import Autoencoder
 import Classifier
 import RavenDataLoader
-import utils
 
 if __name__ == '__main__':
     cwd = pathlib.Path(os.getcwd())

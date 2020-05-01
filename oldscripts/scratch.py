@@ -3,9 +3,16 @@ import pathlib
 import pickle
 from shutil import copyfile
 
-position = 4
-directory = pathlib.Path(r"D:\RAVEN\Fold_1\O-IC")
-AllDir = pathlib.Path(r"D:\RAVEN\Fold_1\All")
+file_dir = pathlib.Path(os.getcwd()) / "data" / "All"
+test_directory = file_dir / "test"
+val_directory = file_dir / "val"
+train_directory = file_dir / "train"
+
+for file in os.listdir(str(val_directory)):
+    copyfile(str(val_directory/file), str(train_directory/str(int(file) + 42000)))
+
+for file in os.listdir(str(test_directory)):
+    copyfile(str(test_directory/file), str(train_directory/str(int(file) + 56000)))
 
 # size = {"train":6000}
 #

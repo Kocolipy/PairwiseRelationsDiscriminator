@@ -1,15 +1,4 @@
 import matplotlib.pyplot as plt
-import torch
-
-
-def loadAutoEncoder(AutoEncoderClass, ckpt, device):
-    ae = AutoEncoderClass()
-    checkpoint = torch.load(ckpt)
-    ae.load_state_dict(checkpoint["model_state_dict"])
-    ae.eval()
-    ae.to(device)
-    return ae
-
 
 def displaySample(tensor):
     """"
