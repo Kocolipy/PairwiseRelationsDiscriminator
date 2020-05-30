@@ -14,9 +14,11 @@ The following is a list of dependencies which we require for the replication:
 ## Instructions
 
 1. Download the RAVEN-10000 dataset [[1]](#1)
+
 We will be using this dataset of Raven's Progressive Matrices (RPM) for both training and testing of the model. The dataset can be found [here](https://drive.google.com/file/d/111swnEzAY2NfZgeyAhVwQujMjRUfeyuY/view)
 
 2. Unzip the RAVEN-10000 dataset
+
 This should produce a directory with seven subfolders, each for a specific configuration. Each subfolder should contain 10,000 RPM problems. Move the directory into the current working directory (cwd).
 
 3. Preprocess the data
