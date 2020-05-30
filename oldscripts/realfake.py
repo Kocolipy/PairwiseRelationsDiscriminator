@@ -8,7 +8,6 @@ import shutil
 import dualsets
 import sample
 
-file_dir = pathlib.Path("D:\RAVEN\Fold_1")
 # file_dir = pathlib.Path(os.getcwd()) / "data"
 
 # for file in os.listdir(file_dir):

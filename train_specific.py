@@ -15,6 +15,7 @@ def set_bn_eval(m):
         m.eval()
 
 
+# Train for a specific configuration
 if __name__ == '__main__':
     cwd = pathlib.Path(os.getcwd())
     torch.multiprocessing.freeze_support()
@@ -23,15 +24,16 @@ if __name__ == '__main__':
     device = torch.device("cuda:0") if torch.cuda.is_available() else torch.device("cpu")
 
     hyperparams = {"batch_size": 32,
+                   "raven_mode": "All",
                    "num_epochs": 200,
-                   "dataset_type": "full", # "test": only the 14,000 test examples;"train": only the 42,000 training examples; "full": the entire 70,000 examples
+                   "dataset_type": "2x2",  # pick a config from ["2x2", "3x3", "center", "lr", "oic", "oig", "ud"]
                    "ckpt": int(sys.argv[1]) if len(sys.argv) > 1 else None}
 
     # Set up data directory
-    data_path = cwd / "data"
+    data_path = cwd / "data" / hyperparams["raven_mode"]
 
     # Create the dataloader to load data for training
-    train_loader = RavenDataLoader.DiscriminatorDataloader(data_path, hyperparams)
+    train_loader = RavenDataLoader.SpecificConfigurationDataloader(data_path, hyperparams)
 
     # Define Model
     classifier = Classifier.L1ResNet()

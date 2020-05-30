@@ -2,6 +2,7 @@ from collections import Counter
 import numpy as np
 import os
 import pathlib
+import sys
 import torch
 
 import Classifier
@@ -14,7 +15,8 @@ if __name__ == '__main__':
     # Make use of GPU if available
     device = torch.device("cuda:0") if torch.cuda.is_available() else torch.device("cpu")
 
-    hyperparams = {"batch_size": 32}
+    hyperparams = {"batch_size": 32,
+                   "ckpt": int(sys.argv[1]) if len(sys.argv) > 1 else None}
 
     # Set up data directory
     data_path = cwd / "data"
@@ -22,24 +24,24 @@ if __name__ == '__main__':
     # Define Model
     classifier = Classifier.L1ResNet()
 
-    # Load model
-    model_path = data_path / "ckpt" / "modelA"
+    # Load from checkpoint
+    ckpt_path = data_path / "ckpt"
 
-    mean_acc = [0.0, 0.0, 0.0, 0.0, 0.0]
-    # Evaluate based on configurations
-    for config in ["center", "2x2", "3x3", "lr", "ud", "oic", "oig"]:
+    # Create the dataloader for evaluation performance (Raven task)
+    test_loader = RavenDataLoader.InferenceLoader(data_path/"val", hyperparams)
 
-        # Create the dataloader for evaluation performance (Raven task)
-        test_loader = RavenDataLoader.InferenceLoader(data_path/"test", hyperparams, config)
-
+    # Pick 10 checkpoints at intervals of 5 starting from specified checkpoint (from cmd line)
+    # Checkpoints are evaluated on the validation dataset and the accuracy is reported.
+    for epoch in range(11):
+        ckpt_no = 5*epoch + (hyperparams["ckpt"] if hyperparams["ckpt"] else 0)
         with torch.no_grad():
-            checkpoint = torch.load(str(model_path))
+            checkpoint = torch.load(str(ckpt_path / str(ckpt_no)))
             classifier.load_state_dict(checkpoint["model_state_dict"])
             classifier.to(device)
             classifier.eval()
 
             # Training Phase
-            print("Evaluating", config)
+            print("Validating on checkpoint", ckpt_no)
             print("-----------------------------------")
 
             # Different Inference Approaches
@@ -75,10 +77,9 @@ if __name__ == '__main__':
                     # features = (torch.abs(dot).clamp(0, 1)).unsqueeze(-1)
                     # combined_scores.append(features)
 
+                    # # L2 distance
                     features = combined_qns.add(-1 * option_feat)
                     features = torch.abs(features)
-
-                    # # L2 distance
                     # features = torch.pow(features, 2)
 
                     # # Concatenation
@@ -118,38 +119,26 @@ if __name__ == '__main__':
             # Compute accuracy from the label positions
             min_summary = Counter(min_val)
             print("Min:", min_summary)
-            print("Accuracy:", min_summary[0] / 2000.0)
-            mean_acc[0] += min_summary[0] / 14000.0
+            print("Accuracy:", min_summary[0] / 14000.0)
             print()
 
             max_summary = Counter(max_val)
             print("Max:", max_summary)
-            print("Accuracy:", max_summary[0] / 2000.0)
-            mean_acc[1] += max_summary[0] / 14000.0
+            print("Accuracy:", max_summary[0] / 14000.0)
             print()
 
             avg_summary = Counter(avg_val)
             print("Avg:", avg_summary)
-            print("Accuracy:", avg_summary[0] / 2000.0)
-            mean_acc[2] += avg_summary[0] / 14000.0
+            print("Accuracy:", avg_summary[0] / 14000.0)
             print()
 
             sqdist_summary = Counter(sqdist_val)
             print("Squared Dist:", sqdist_summary)
-            print("Accuracy:", sqdist_summary[0] / 2000.0)
-            mean_acc[3] += sqdist_summary[0] / 14000.0
+            print("Accuracy:", sqdist_summary[0] / 14000.0)
             print()
 
             combined_summary = Counter(combined_val)
             print("Combined Features:", combined_summary)
-            print("Accuracy:", combined_summary[0] / 2000.0)
-            mean_acc[4] += combined_summary[0] / 14000.0
+            print("Accuracy:", combined_summary[0] / 14000.0)
             print()
             print()
-
-    print("------- Overall Performance -------")
-    print("Min:", mean_acc[0])
-    print("Max:", mean_acc[1])
-    print("Avg:", mean_acc[2])
-    print("Squared Dist:", mean_acc[3])
-    print("Combined Features:", mean_acc[4])
