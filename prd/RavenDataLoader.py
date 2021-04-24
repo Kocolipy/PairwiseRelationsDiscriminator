@@ -7,8 +7,10 @@ import random
 from skimage.transform import resize
 import torchvision.transforms as transforms
 
+
 norm = transforms.Normalize(mean=[0.485, 0.456, 0.406],
                             std=[0.229, 0.224, 0.225])
+
 
 class ConfigurationDataset(Dataset):
     """"
@@ -44,20 +46,20 @@ class ConfigurationDataset(Dataset):
         if torch.is_tensor(idx):
             idx = idx.tolist()
 
-        file = pickle.load(open(str(self.getFileName(idx)), "rb"))
+        fp = pickle.load(open(str(self.getFileName(idx)), "rb"))
 
         i = 3 if random.random() > 0.5 else 0
         j = abs(i-3)
-        firstSet = norm(torch.tensor(resize(file.questionPanels[i:i+3], (3, 224, 224))))
-        secondSet = norm(torch.tensor(resize(file.questionPanels[j:j+3], (3, 224, 224))))
+        firstSet = torch.tensor(fp.questionPanels[i:i+3])
+        secondSet = torch.tensor(fp.questionPanels[j:j+3])
         real_data = torch.cat([firstSet, secondSet], 0)
 
         # Both Option 1 and 2
-        if random.random() < 1/2:
+        if random.random() < 0.5:
             if random.random() < 0.5:
-                thirdSet = np.concatenate([file.questionPanels[j:j + 2], random.choice(file.answerPanels)[np.newaxis, :]])
+                thirdSet = np.concatenate([fp.questionPanels[j:j + 2], random.choice(fp.answerPanels)[np.newaxis, :]])
             else:
-                thirdSet = np.concatenate([file.questionPanels[6:8], random.choice(file.questionPanels[j:j+3])[np.newaxis, :]])
+                thirdSet = np.concatenate([fp.questionPanels[6:8], random.choice(fp.questionPanels[j:j+3])[np.newaxis, :]])
             np.random.shuffle(thirdSet)
         else:
             a = random.choice(range(self.len))
@@ -66,15 +68,16 @@ class ConfigurationDataset(Dataset):
             k = 3 if random.random() > 0.5 else 0
             thirdSet = f2.questionPanels[k:k + 3]
 
-        thirdSet = norm(torch.tensor(resize(thirdSet, (3, 224, 224))))
+        thirdSet = torch.tensor(thirdSet)
         fake_data = torch.cat([firstSet, thirdSet], 0)
 
         return real_data, torch.tensor(1.0, dtype=float), fake_data, torch.tensor(0.0, dtype=float)
 
-def SpecificConfigurationDataloader(data_path, hyperparams):
-    data_set = ConfigurationDataset(data_path, hyperparams["dataset_type"])
-    return DataLoader(data_set, batch_size=hyperparams["batch_size"],
-                      shuffle=True, num_workers=hyperparams["batch_size"])
+
+def SpecificConfigurationDataloader(data_path, args):
+    data_set = ConfigurationDataset(data_path, args.dataset_type)
+    return DataLoader(data_set, batch_size=args.batch_size,
+                      shuffle=True, num_workers=args.num_train_workers)
 
 
 class DiscriminatorDataset(Dataset):
@@ -91,24 +94,26 @@ class DiscriminatorDataset(Dataset):
                  The resulting row is shuffled.
      - Option 2: a random row taken from a random sample
     """
-    def __init__(self, data_source, type):
+    def __init__(self, data_source, data_type):
         self.data_source = data_source
-        self.type = type
+        self.data_type = data_type
 
-        if type == "full":
+        if self.data_type == "full":
             self.len = 70000
-        elif type == "train":
+        elif self.data_type == "trainval":
+            self.len = 56000
+        elif self.data_type == "train":
             self.len = 42000
-        elif type == "test":
+        elif self.data_type == "test":
             self.len = 14000
         else:
-            print("Type must be either full, train or test")
+            print("Type must be either full, trainval, train or test")
 
     def __len__(self):
         return self.len
 
     def getFileName(self, idx):
-        if self.type == "test":
+        if self.data_type == "test":
             return self.data_source / "test" / str(idx)
 
         if idx < 42000:
@@ -122,13 +127,13 @@ class DiscriminatorDataset(Dataset):
         if torch.is_tensor(idx):
             idx = idx.tolist()
 
-        with open(str(self.getFileName(idx)), "rb") as f:
-            file = pickle.load(f)
+        fp = pickle.load(open(str(self.getFileName(idx)), "rb"))
 
         i = 3 if random.random() > 0.5 else 0
-        j = abs(i-3)
-        firstSet = norm(torch.tensor(resize(file.questionPanels[i:i+3], (3, 224, 224))))
-        secondSet = norm(torch.tensor(resize(file.questionPanels[j:j+3], (3, 224, 224))))
+        j = abs(i-3)        
+        firstSet = torch.tensor(fp.questionPanels[i:i+3])
+        secondSet = torch.tensor(fp.questionPanels[j:j+3])
+        
         real_data = torch.cat([firstSet, secondSet], 0)
 
         # # Only Option 1
@@ -147,30 +152,28 @@ class DiscriminatorDataset(Dataset):
         # thirdSet = f2.questionPanels[k:k + 3]
 
         # Both Option 1 and 2
-        if random.random() < 1/2:
+        if random.random() < 0.5:
             if random.random() < 0.5:
-                thirdSet = np.concatenate([file.questionPanels[j:j + 2], random.choice(file.answerPanels)[np.newaxis, :]])
+                thirdSet = np.concatenate([fp.questionPanels[j:j + 2], random.choice(fp.answerPanels)[np.newaxis, :]])
             else:
-                thirdSet = np.concatenate([file.questionPanels[6:8], random.choice(file.questionPanels[j:j+3])[np.newaxis, :]])
+                thirdSet = np.concatenate([fp.questionPanels[6:8], random.choice(fp.questionPanels[j:j+3])[np.newaxis, :]])
             np.random.shuffle(thirdSet)
         else:
             a = random.choice(range(self.len))
-            with open(str(self.getFileName(a)), "rb") as f:
-                f2 = pickle.load(f)
-
+            f2 = pickle.load(open(str(self.getFileName(a)), "rb"))
             k = 3 if random.random() > 0.5 else 0
             thirdSet = f2.questionPanels[k:k + 3]
 
-        thirdSet = norm(torch.tensor(resize(thirdSet, (3, 224, 224))))
+        thirdSet = torch.tensor(thirdSet)
         fake_data = torch.cat([firstSet, thirdSet], 0)
 
         return real_data, torch.tensor(1.0, dtype=float), fake_data, torch.tensor(0.0, dtype=float)
 
 
-def DiscriminatorDataloader(data_path, hyperparams):
-    data_set = DiscriminatorDataset(data_path, hyperparams["dataset_type"])
-    return DataLoader(data_set, batch_size=hyperparams["batch_size"],
-                      shuffle=True, num_workers=hyperparams["batch_size"])
+def DiscriminatorDataloader(data_path, args):
+    data_set = DiscriminatorDataset(data_path, args.dataset_type)
+    return DataLoader(data_set, batch_size=args.batch_size,
+                      shuffle=True, num_workers=args.num_train_workers)
 
 
 class InferenceDataset(Dataset):
@@ -199,17 +202,23 @@ class InferenceDataset(Dataset):
         with open(str(self.data_source / str(idx)), "rb") as f:
             file = pickle.load(f)
 
-        firstSet = norm(torch.tensor(resize(file.questionPanels[:3], (3, 224, 224)))).unsqueeze(0).unsqueeze(0).repeat(8,1,1,1,1)
-        secondSet = norm(torch.tensor(resize(file.questionPanels[3:6], (3, 224, 224)))).unsqueeze(0).unsqueeze(0).repeat(8,1,1,1,1)
+        # firstSet = norm(torch.tensor(resize(file.questionPanels[:3], (3, 224, 224)))).unsqueeze(0).unsqueeze(0).repeat(8,1,1,1,1)
+        # secondSet = norm(torch.tensor(resize(file.questionPanels[3:6], (3, 224, 224)))).unsqueeze(0).unsqueeze(0).repeat(8,1,1,1,1)
+        
+        firstSet = torch.tensor(file.questionPanels[:3]).unsqueeze(0).unsqueeze(0).repeat(8,1,1,1,1)
+        secondSet = torch.tensor(file.questionPanels[3:6]).unsqueeze(0).unsqueeze(0).repeat(8,1,1,1,1)
+
         thirdSet = file.questionPanels[6:]
 
-        answers = torch.stack([norm(torch.tensor(resize(np.concatenate((thirdSet, ans[np.newaxis, :])), (3, 224, 224)))) for ans in file.answerPanels], 0).unsqueeze(1)
+        # answers = torch.stack([norm(torch.tensor(resize(np.concatenate((thirdSet, ans[np.newaxis, :])), (3, 224, 224)))) for ans in file.answerPanels], 0).unsqueeze(1)
+        answers = torch.stack([torch.tensor(np.concatenate((thirdSet, ans[np.newaxis, :]))) for ans in file.answerPanels], 0).unsqueeze(1)
+        
         data = torch.cat((torch.cat((firstSet, answers), 2), torch.cat((secondSet, answers), 2)), 1)
 
         return data, file.answer
 
 
-def InferenceLoader(data_path, hyperparams, config=None):
+def InferenceLoader(data_path, args, config=None):
     data_set = InferenceDataset(data_path, config)
-    return DataLoader(data_set, batch_size=hyperparams["batch_size"],
-                        shuffle=True, num_workers=2)
+    return DataLoader(data_set, batch_size=args.batch_size,
+                        shuffle=True, num_workers=args.num_inference_workers)

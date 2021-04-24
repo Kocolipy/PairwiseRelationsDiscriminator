@@ -2,15 +2,21 @@ import os
 import pathlib
 import pickle
 import shutil
+from tqdm import tqdm
 
-import sample
+from prd.sample import Sample
 
 cwd = pathlib.Path(os.getcwd())
 
-file_dir = cwd / "RAVEN-10000"
+parser = argparse.ArgumentParser()
+parser.add_argument('--dataset', type=str, default="RAVEN", choices=["RAVEN", "I-RAVEN"])
+parser.add_argument('--out_dir', type=str, default="data")
+args = parser.parse_args()
+
+file_dir = cwd / f"{args.dataset}-10000"
 
 # Create directory to contain processed RPM problems
-out_dir = cwd / "data"
+out_dir = cwd / args.out_dir
 out_dir.mkdir(parents=True, exist_ok=True)
 (out_dir / "train").mkdir(parents=True, exist_ok=True)
 (out_dir / "val").mkdir(parents=True, exist_ok=True)
@@ -36,25 +42,16 @@ for count, config in enumerate(sorted(os.listdir(str(file_dir)))):
     test = set(file.split('_')[1] for file in test)
 
     print("Processing Training Set of", config)
-    for i, x in enumerate(train):
-        s = sample.Sample(config_dir / "RAVEN_{}_train.npz".format(x), config_dir / "RAVEN_{}_train.xml".format(x))
+    for i, x in enumerate(tqdm(train)):
+        s = Sample(config_dir / f"RAVEN_{x}_train.npz", config_dir / f"RAVEN_{x}_train.xml")
         pickle.dump(s, open(str(out_dir / "train" / str(count*6000 + i)), 'wb+'))
 
-        if (i + 1) % 600 == 0:
-            print((i + 1) / 60, "% completed")
-
     print("Processing Validation Set of", config)
-    for i, x in enumerate(val):
-        s = sample.Sample(config_dir / "RAVEN_{}_val.npz".format(x), config_dir / "RAVEN_{}_val.xml".format(x))
+    for i, x in enumerate(tqdm(val)):
+        s = Sample(config_dir / f"RAVEN_{x}_val.npz", config_dir / f"RAVEN_{x}_val.xml")
         pickle.dump(s, open(str(out_dir / "val" / str(count*2000 + i)), 'wb+'))
 
-        if (i + 1) % 200 == 0:
-            print((i + 1) / 20, "% completed")
-
     print("Processing Test Set of", config)
-    for i, x in enumerate(test):
-        s = sample.Sample(config_dir / "RAVEN_{}_test.npz".format(x), config_dir / "RAVEN_{}_test.xml".format(x))
+    for i, x in enumerate(tqdm(test)):
+        s = Sample(config_dir / f"RAVEN_{x}_test.npz", config_dir / f"RAVEN_{x}_test.xml")
         pickle.dump(s, open(str(out_dir / "test" / str(count*2000 + i)), 'wb+'))
-
-        if (i+1) % 200 == 0:
-            print((i+1)/20, "% completed")
